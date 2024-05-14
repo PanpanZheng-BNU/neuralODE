@@ -15,12 +15,4 @@
     - [ ] [FFJORD](https://arxiv.org/abs/1810.01367)
 3. 利用Neural ODE实现复杂动力学学习（涌现动力学），将该论文中的所有部件全部替换为Neural ODE。
 
-# test
-- [x] Venus
-- [x] Earth (Orbit/Moon)
-- [x] Mars
-- [ ] Jupiter
-- [ ] Saturn
-- [ ] Uranus
-- [ ] Neptune
-- [ ] Comet Haley
+
