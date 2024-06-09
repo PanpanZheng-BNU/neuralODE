@@ -62,6 +62,7 @@ class Phi(nn.Module):
         self.alph = alph
 
         r = min(r, d + 1)
+
         self.A = nn.Parameter(torch.zeros(r, d+1), requires_grad=True)
         self.A = nn.init.xavier_uniform_(self.A)
         self.c = nn.Linear(d+1, 1, bias=True)
@@ -71,7 +72,7 @@ class Phi(nn.Module):
         
         self.w.weight.data = torch.ones(self.w.weight.data.shape)
         self.c.weight.data = torch.zeros(self.c.weight.data.shape)
-        self.c.bias.data = torch.zeros(self.c.bias.data.shape)
+        self.c.bias.data   = torch.zeros(self.c.bias.data.shape)
 
     def forward(self, x):
         symA = torch.mm(self.A.t(), self.A)
@@ -83,52 +84,87 @@ class Phi(nn.Module):
             computate  gradient of Phi wrt x and trace (Hessian of Phi): corresponding to the Eq. (12) and Eq.(14) in the paper.
         """
 
-        N = self.N
-        m = N.layers[0].weight.data.shape[0]
-        nex = x.shape[0]
-        d = x.shape[1] - 1
-        symA = torch.mm(self.A.t(), self.A)
+        N    = self.N
+        m    = N.layers[0].weight.shape[0]
+        nex  = x.shape[0] # number of examples in the batch
+        d    = x.shape[1]-1
+        symA = torch.matmul(self.A.t(), self.A)
 
-        u = []              # hold the u_0, u_1, ..., u_M for the forward pass 
-        z = N.nTh * [None]  # hold the z_0, z_1, ..., z_M for the backward pass
+        u = [] # hold the u_0,u_1,...,u_M for the forward pass
+        z = N.nTh*[None] # hold the z_0,z_1,...,z_M for the backward pass
+        # preallocate z because we will store in the backward pass and we want the indices to match the paper
 
-
-        opening = N.layers[0].forward(x)
-        u.append(N.act(opening))
+        # Forward of ResNet N and fill u
+        opening     = N.layers[0].forward(x) # K_0 * S + b_0
+        u.append(N.act(opening)) # u0
         feat = u[0]
 
-        for i in range(1, N.nTh):
-            feat += N.h * N.act(N.layers[i].forward(feat))
+        for i in range(1,N.nTh):
+            feat = feat + N.h * N.act(N.layers[i](feat))
             u.append(feat)
 
-        tanhopen = torch.tanh(opening)
+        # going to be used more than once
+        tanhopen = torch.tanh(opening) # act'( K_0 * S + b_0 )
 
-        for i in range(N.nTh-1,0, -1):
+        # compute gradient and fill z
+        for i in range(N.nTh-1,0,-1): # work backwards, placing z_i in appropriate spot
             if i == N.nTh-1:
                 term = self.w.weight.t()
             else:
                 term = z[i+1]
 
-            z[i] = term + N.h * torch.mm(N.layers[i].weight.t(), torch.tanh(N.layers[i].forward(u[i-1]).t() * term))
+            # z_i = z_{i+1} + h K_i' diag(...) z_{i+1}
+            z[i] = term + N.h * torch.mm( N.layers[i].weight.t() , torch.tanh( N.layers[i].forward(u[i-1]) ).t() * term)
 
-        z[0] = torch.mm(N.layers[0].weight.t(), tanhopen.t() * z[1])
-
-        grad = z[0] + torch.mm(symA, x.t()), + self.c.weight.t()
+        # z_0 = K_0' diag(...) z_1
+        z[0] = torch.mm( N.layers[0].weight.t() , tanhopen.t() * z[1] )
+        grad = z[0] + torch.mm(symA, x.t() ) + self.c.weight.t()
 
         if justGrad:
             return grad.t()
+
 
         Kopen = N.layers[0].weight[:, 0:d] # indexed version of Kopen = torch.m(N.layers[0].weight, E)
         temp = derivTanh(opening.t()) * z[1] 
 
         trH = torch.sum(temp.reshape(m, -1, nex) * torch.pow(Kopen.unsqueeze(2),2), dim = (0,1))
-        
 
+        temp = tanhopen.t()
+        Jac = Kopen.unsqueeze(2) * temp.unsqueeze(1)
 
+        for i in range(1, N.nTh):
+            KJ = torch.mm(N.layers[i].weight, Jac.reshape(m,-1))
+            KJ = KJ.reshape(m,-1,nex)
+            if i == N.nTh-1:
+                term = self.w.weight.t()
+            else:
+                term = z[i+1]
 
+            temp = N.layers[i].forward(u[i-1]).t()
+            t_i = torch.sum((derivTanh(temp) * term).reshape(m,-1,nex) * torch.pow(KJ, 2), dim = (0,1))
+            trH = trH + N.h * t_i
 
+            Jac = Jac + N.h * torch.tanh(temp).reshape(m, -1, nex) * KJ
 
+        return grad.t(), trH + torch.trace(symA[0:d,0:d])
 
+                
 
 if __name__ == "__main__":
+    import pandas as pd
+    d = 2
+    m = 5
+
+    net = Phi(nTh=2, m=m, d=d)
+    net.N.layers[0].weight.data  = 0.1 + 0.0 * net.N.layers[0].weight.data
+    net.N.layers[0].bias.data    = 0.2 + 0.0 * net.N.layers[0].bias.data
+    net.N.layers[1].weight.data  = 0.3 + 0.0 * net.N.layers[1].weight.data
+    net.N.layers[1].weight.data  = 0.3 + 0.0 * net.N.layers[1].weight.data
+
+    # number of samples-by-(d+1)
+    x = torch.Tensor([[1.0 ,4.0 , 0.5],[2.0,5.0,0.6],[3.0,6.0,0.7],[0.0,0.0,0.0]])
+    y = net(x)
+    g,h = net.trHess(x )
+    print(g)
+    print(h)
 
