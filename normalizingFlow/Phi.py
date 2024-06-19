@@ -5,10 +5,11 @@ import torch.nn as nn
 def antidrivTanh(x): # defined the activation function of ResNet, which is the antiderivative of the tanh function
     return torch.abs(x) + torch.log(1 + torch.exp(-2.0 * torch.abs(x)))
 
-def derivTanh(x): # define the derivative of the tanh function.
+def derivTanh(x):    # define the derivative of the tanh function.
     return 1 - torch.pow(torch.tanh(x), 2) 
 
 
+# define the function N used in Phi, which is a ResNet with nTh layers
 class ResNN(nn.Module):
     def __init__(self, d: int, m: int, nTh=2):
         """
@@ -33,7 +34,7 @@ class ResNN(nn.Module):
 
     def forward(self, x):
         """
-        :param x:   tensor nex-by-d+1, inputs
+        :param x:   tensor nex-by-d+1, inputs. (nex is the batch size)
         """
         x = self.act(self.layers[0](x))
 
@@ -81,7 +82,7 @@ class Phi(nn.Module):
 
     def trHess(self, x, justGrad=False):
         """
-            computate  gradient of Phi wrt x and trace (Hessian of Phi): corresponding to the Eq. (12) and Eq.(14) in the paper.
+            computate  gradient of Phi wrt x and trace (Hessian of Phi): corresponding to the Eq. (9) and Eq.(11) in our report.
         """
 
         N    = self.N
@@ -147,24 +148,3 @@ class Phi(nn.Module):
             Jac = Jac + N.h * torch.tanh(temp).reshape(m, -1, nex) * KJ
 
         return grad.t(), trH + torch.trace(symA[0:d,0:d])
-
-                
-
-if __name__ == "__main__":
-    import pandas as pd
-    d = 2
-    m = 5
-
-    net = Phi(nTh=2, m=m, d=d)
-    net.N.layers[0].weight.data  = 0.1 + 0.0 * net.N.layers[0].weight.data
-    net.N.layers[0].bias.data    = 0.2 + 0.0 * net.N.layers[0].bias.data
-    net.N.layers[1].weight.data  = 0.3 + 0.0 * net.N.layers[1].weight.data
-    net.N.layers[1].weight.data  = 0.3 + 0.0 * net.N.layers[1].weight.data
-
-    # number of samples-by-(d+1)
-    x = torch.Tensor([[1.0 ,4.0 , 0.5],[2.0,5.0,0.6],[3.0,6.0,0.7],[0.0,0.0,0.0]])
-    y = net(x)
-    g,h = net.trHess(x )
-    print(g)
-    print(h)
-
