@@ -25,12 +25,13 @@ class ResNN(nn.Module):
         self.d = d
         self.m = m
         self.nTh = nTh
+        # Create the list of layers, the first layer is a linear layer with d+1 inputs and m outputs, the rest are linear layers with m inputs and m outputs.
         self.layers = nn.ModuleList(
                 [nn.Linear(d + 1, m, bias=True)] + [nn.Linear(m, m, bias=True) for _ in range(nTh - 1)]
                 )
 
         self.act = antidrivTanh
-        self.h = 1.0 / (self.nTh - 1)
+        self.h = 1.0 / (self.nTh - 1)   # the step size h in the ResNet
 
     def forward(self, x):
         """
@@ -47,7 +48,7 @@ class ResNN(nn.Module):
 class Phi(nn.Module):
     def __init__(self, nTh, m, d, r=10, alph=[1.0] * 5):
         """
-            Phi function in as Eq. (10) in the paper
+            Phi function in as Eq. (7) in our report
             Phi([x,t]) = w'*ResNet([x,t]) + 0.5 * [x' t] * A'A * [x;t] + b'*[x;t] + c
         :param nTh:     int, number of ResNet layers.
         :param m:       int, hidden dimension of ResNet.
@@ -62,12 +63,12 @@ class Phi(nn.Module):
         self.d = d
         self.alph = alph
 
-        r = min(r, d + 1)
+        r = min(r, d + 1)   # the rank of the matrix A is at most r.
 
-        self.A = nn.Parameter(torch.zeros(r, d+1), requires_grad=True)
+        self.A = nn.Parameter(torch.zeros(r, d+1), requires_grad=True)  # Create matrix A with size r-by-(d+1), using the nn.Parameter method to make it trainable.
         self.A = nn.init.xavier_uniform_(self.A)
-        self.c = nn.Linear(d+1, 1, bias=True)
-        self.w = nn.Linear(m, 1, bias=False)
+        self.c = nn.Linear(d+1, 1, bias=True)  # Create a function c([x,t]) which is a linear function with bias of [x,t] to substitute the b and c in Eq. (7)
+        self.w = nn.Linear(m, 1, bias=False)   # Create a function w([x,t]) which is a linear function with bias of [x,t] to substitute the w in Eq. (7)
 
         self.N = ResNN(d, m, nTh=nTh)
         
@@ -75,10 +76,11 @@ class Phi(nn.Module):
         self.c.weight.data = torch.zeros(self.c.weight.data.shape)
         self.c.bias.data   = torch.zeros(self.c.bias.data.shape)
 
+    # Define the forward pass of the Phi function, In practice, it's no need to call this function in OT Flow. 
     def forward(self, x):
         symA = torch.mm(self.A.t(), self.A)
-
         return self.w(self.N(x)) + 0.5 * torch.sum(torch.mm(x, symA) * x, dim=1, keepdim=True) + self.c(x)
+
 
     def trHess(self, x, justGrad=False):
         """
