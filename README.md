@@ -19,3 +19,12 @@
 - [`OTFlow_training.ipynb`](./normalizingFlow/OTFlow_training.ipynb) 中构建了一个 OT flow 的模型，并进行训练
 - [`OTFlow_validation.ipynb`](./normalizingFlow/OTFlow_validation.ipynb) 中使用训练好的 OT flow 模型进行验证，所有的模型参数都保存在 [`OT-Flow`](./normalizingFlow/OT-Flow) 文件夹中
 
+## Part III NIS
+- [`Neural_Information_Squeezer.ipynb`](./NIS&Classification/Neural_Information_Squeezer.ipynb) 中实现了用neural ODE结构替换了宏观动力学学习器的NIS的复现
+- [`Neural_Ode_Squeezer (1).ipynb`](./NIS&Classification/Neural_Ode_Squeezer%20(1).ipynb) 中实现了所有结构均替换为neural ODE结构的NIS的复现
+- [`Real_NVP_400_steps.gif`](./NIS&Classification/Real_NVP_400_steps.gif) 中展示了用neural ODE结构替换了的宏观动力学学习器的NIS在400个时间步上进行预测的动态效果
+- [`Ode_400_steps.gif`](./NIS&Classification/Ode_400_steps.gif) 中展示了用neural ODE结构替换了所有结构的NIS在400个时间步上进行预测的动态效果
+
+
+## Part IV Classification
+- [`ODE4classification.ipynb`](./NIS&Classification/ODE4classification.ipynb) 中实现了利用基于neural ODE特征提取的分类模型实现了对MIT-BIH数据库的ECG数据的分类
