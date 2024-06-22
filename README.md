@@ -5,7 +5,7 @@
 3. 将 [Zhang, 2022](https://www.mdpi.com/1099-4300/25/1/26) 中模型的各部分替换为 neural ODE，使用 neural ODE 进行心率信号的分类
 
 ## Part I 简单动力学学习
-详细见ode.ipynb文件
+详细见[ode.ipynb](./ode.ipynb)文件
 ## Part II 标准化流
 > [`normalizing flow`](./normalizingFlow) 文件夹中存放了使用 neural ODE 实现的标准化流的代码
 > [`utils`](./normalizingFlow/utils) 文件夹中存放了一些用于训练工具函数，如数据集的生成，模型的保存等
