@@ -1,8 +1,9 @@
 # NeuralODE
-本库用于存储关于 neural ODE 的相关代码和文档。主要分为三个部分：
+本库用于存储关于 neural ODE 的相关代码和文档。主要分为四个部分：
 1. 使用 neural ODE 进行简单时间序列的动力学学习
 2. 使用 neural ODE 实现连续化的标准化流 (normalizing flow)
-3. 将 [Zhang, 2022](https://www.mdpi.com/1099-4300/25/1/26) 中模型的各部分替换为 neural ODE，使用 neural ODE 进行心率信号的分类
+3. 将 [Zhang, 2022](https://www.mdpi.com/1099-4300/25/1/26) 中模型的各部分替换为 neural ODE
+4. 使用 neural ODE 进行心率信号的分类
 
 ## Part I 简单动力学学习 @[申晓达](https://github.com/lancesxdlance)
 详细见[ode.ipynb](./ode.ipynb)文件
